@@ -11,55 +11,34 @@ from ultralytics.yolo.data.utils import check_det_dataset
 from tqdm import tqdm
 from ultralytics.yolo.utils import ops
 import nncf
-from ultralytics.yolo.utils.metrics import ConfusionMatrix
+import os
+import time
 
-IMAGE_PATH = "datasets/coco/img_for_test/000000000016.jpg"
+IMAGE_PATH = "datasets/coco/img_for_test"
 DET_MODEL_NAME = "yolov8s"
 
-args = get_cfg(cfg=DEFAULT_CFG)
-args.data = str("datasets/coco.yaml")
-
-def transform_fn(data_item):
-    """
-    Quantization transform function. Extracts and preprocess input data from dataloader item for quantization.
-    Parameters:
-       data_item: Dict with data item produced by DataLoader during iteration
-    Returns:
-        input_tensor: Input data for quantization
-    """
-    input_tensor = det_validator.preprocess(data_item)['img'].numpy()
-    return input_tensor
+images = os.listdir(IMAGE_PATH)
 
 det_model = YOLO(f'{DET_MODEL_NAME}.pt')
 label_map = det_model.model.names
 
-res = det_model(IMAGE_PATH)
-image = Image.fromarray(res[0].plot()[:, :, ::-1])
-image.save("outputs/YOLOv8_openvino" + str(0) + ".png")
+image_lst = [Image.open(IMAGE_PATH + '/' + an_image) for an_image in images]
+time_lst = []
 
-det_validator = det_model.ValidatorClass(args=args)
+for i, image in enumerate(image_lst):
+    res = det_model(image)
+    image = Image.fromarray(res[0].plot()[:, :, ::-1])
+    image.save("outputs/YOLOv8_cpu" + str(i) + ".png")
+    # for cache
 
-det_validator.data = check_det_dataset(args.data)
-det_data_loader = det_validator.get_dataloader("datasets/coco", 1)
+for _ in range(10):
+    start = time.perf_counter()
+    for image in image_lst:
+        res = det_model(image)
+    end = time.perf_counter()
+    time_lst.append(end - start)
 
-det_validator.is_coco = True
-# det_validator.class_map = ops.coco80_to_coco91_class()
-det_validator.names = det_model.model.names
-det_validator.metrics.names = det_validator.names
-det_validator.nc = det_model.model.model[-1].nc 
-
-det_validator.seen = 0
-det_validator.jdict = []
-det_validator.stats = []
-det_validator.batch_i = 1
-det_validator.confusion_matrix = ConfusionMatrix(nc=det_validator.nc)
-
-for batch_i, batch in enumerate(det_data_loader):
-    batch = det_validator.preprocess(batch)
-    results = det_model(batch["img"])
-    preds = [torch.from_numpy(results[det_model.model.output(0)]), torch.from_numpy(results[det_model.model.output(1)])]
-    preds = det_validator.postprocess(preds)
-    det_validator.update_metrics(preds, batch)
-stats = det_validator.get_stats()
-
-print_stats(stats, det_validator.seen, det_validator.nt_per_class.sum())
+with open("YOLOv8_cpu.csv", "a") as file:
+    for i in range(10):
+        file.write(str(time_lst[i]) + ',')
+    file.write(str(sum(time_lst) / len(time_lst)) + "\n")
