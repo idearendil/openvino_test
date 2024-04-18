@@ -1,64 +1,26 @@
 import torch
-from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler, PNDMScheduler, LMSDiscreteScheduler
+from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler, PNDMScheduler, LMSDiscreteScheduler
 from transformers import CLIPTokenizer
 import time
 
-# Use the DPMSolverMultistepScheduler (DPM-Solver++) scheduler here instead
-from diffusers import DiffusionPipeline
-import torch
+model_id = "stabilityai/stable-diffusion-xl-base-1.0"
 
-# load both base & refiner
-base = DiffusionPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-base-1.0", use_safetensors=True
-)
-refiner = DiffusionPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-refiner-1.0",
-    text_encoder_2=base.text_encoder_2,
-    vae=base.vae,
-    use_safetensors=True,
-)
-
-
+base = DiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float32, variant="fp32")
 base.unet = torch.compile(base.unet, backend="aot_eager")
-refiner.unet = torch.compile(refiner.unet, backend="aot_eager")
-base.to("cpu")
-refiner.to("cpu")
+base = base.to("cpu")
 
-prompt = "valley in the Alps at sunset, epic vista, beautiful landscape, 4k, 8k"
+# prompt = "valley in the Alps at sunset, epic vista, beautiful landscape, 4k, 8k"
+prompt = "a busy intersection in a city seen on the road, realistic, sunny day, 4k, 8k"
 neg_prompt = "frames, borderline, text, charachter, duplicate, error, out of frame, watermark, low quality, ugly, deformed, blur"
 
 time_lst = []
-image = base(
-    prompt=prompt,
-    num_inference_steps=40,
-    denoising_end=0.8,
-    output_type="latent",
-).images
-image = refiner(
-    prompt=prompt,
-    num_inference_steps=40,
-    denoising_start=0.8,
-    image=image,
-).images[0] # for compile
+image = base(prompt, negative_prompt=neg_prompt, num_inference_steps=40).images[0]  # for cache
 
 for i in range(10):
     generator = torch.Generator("cpu").manual_seed(i) 
 
     start = time.perf_counter()
-    image = base(
-        prompt=prompt,
-        generator=generator,
-        num_inference_steps=40,
-        denoising_end=0.8,
-        output_type="latent",
-    ).images
-    image = refiner(
-        prompt=prompt,
-        generator=generator,
-        num_inference_steps=40,
-        denoising_start=0.8,
-        image=image,
-    ).images[0]
+    image = base(prompt, negative_prompt=neg_prompt, generator=generator, num_inference_steps=40).images[0]  # for cache
     end = time.perf_counter()
     time_lst.append(end - start)
 

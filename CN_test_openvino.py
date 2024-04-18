@@ -7,8 +7,8 @@ import torch
 from transformers import CLIPTokenizer
 from pathlib import Path
 import openvino as ov
-from conversion import controlnet_conversion, unet_conversion, text_encoder_conversion, vae_decoder_conversion
-from OVpipeline import OVContrlNetStableDiffusionPipeline
+from CN_conversion import controlnet_conversion, unet_conversion, text_encoder_conversion, vae_decoder_conversion
+from CN_OVpipeline import OVContrlNetStableDiffusionPipeline
 import time
 
 model_id = "stabilityai/stable-diffusion-2-1-base"
@@ -50,14 +50,14 @@ negative_prompt = ""
 
 
 time_lst = []
-result = ov_pipe(prompt[0], canny_image[0], 20, negative_prompt=negative_prompt)  # for cache
+result = ov_pipe(prompt[0], canny_image[0], num_inference_steps=20, negative_prompt=negative_prompt)  # for cache
 
 for i in range(10):
     idx = i % 2
     np.random.seed(i)
 
     start = time.perf_counter()
-    result = ov_pipe(prompt[idx], canny_image[idx], 20, negative_prompt=negative_prompt)
+    result = ov_pipe(prompt[idx], canny_image[idx], num_inference_steps=20, negative_prompt=negative_prompt)
     end = time.perf_counter()
     time_lst.append(end - start)
 
