@@ -6,6 +6,7 @@ import openvino as ov
 from PIL import Image
 import numpy as np
 import torch
+from collections import namedtuple
 
 
 def scale_fit_to_window(dst_width:int, dst_height:int, image_width:int, image_height:int):

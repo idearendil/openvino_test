@@ -3,7 +3,6 @@
 for var in `seq 1 50`;
 do
     echo ${var}
-    python YOLOv8_cpu.py
-    python YOLOv8_openvino.py
-    python YOLOv8_openvino_int8.py
+    python CN_test_openvino.py
+    python CN_test_cpu.py
 done

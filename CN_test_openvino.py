@@ -9,30 +9,26 @@ from pathlib import Path
 import openvino as ov
 from CN_conversion import controlnet_conversion, unet_conversion, text_encoder_conversion, vae_decoder_conversion
 from CN_OVpipeline import OVContrlNetStableDiffusionPipeline
+from CN_get_pose import visualize_pose_results
 import time
+from controlnet_aux import OpenposeDetector
+import matplotlib.pyplot as plt
+import requests
 
-model_id = "stabilityai/stable-diffusion-2-1-base"
+model_id = "runwayml/stable-diffusion-v1-5"
 CONTROLNET_OV_PATH = Path('./cn_openvino/controlnet.xml')
 UNET_OV_PATH = Path('./cn_openvino/unet_controlnet.xml')
 TEXT_ENCODER_OV_PATH = Path('./cn_openvino/text_encoder.xml')
 VAE_DECODER_OV_PATH = Path('./cn_openvino/vae_decoder.xml')
+OPENPOSE_OV_PATH = Path("./cn_openvino/openpose.xml")
 
-original_image = [load_image("test_cat.png"), load_image("test_bird.png")]
-image = np.array(original_image[0])
-image = cv2.Canny(image, 100, 200)
-image = image[:, :, None]
-image = np.concatenate([image, image, image], axis=2)
-canny_image = Image.fromarray(image)
-image = np.array(original_image[1])
-image = cv2.Canny(image, 100, 200)
-image = image[:, :, None]
-image = np.concatenate([image, image, image], axis=2)
-canny_image = [canny_image, Image.fromarray(image)]
-
-controlnet = ControlNetModel.from_pretrained("thibaud/controlnet-sd21-canny-diffusers", torch_dtype=torch.float32, use_safetensors=False)
+controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_openpose", torch_dtype=torch.float32, use_safetensors=False)
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
     model_id, controlnet=controlnet, torch_dtype=torch.float32, use_safetensors=False
 )
+pose_estimator = OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
+
+core = ov.Core()
 
 a, b = controlnet_conversion(controlnet)
 unet_conversion(pipe, a, b)
@@ -42,26 +38,27 @@ vae_decoder_conversion(pipe.vae)
 scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
 
-core = ov.Core()
 ov_pipe = OVContrlNetStableDiffusionPipeline(tokenizer, scheduler, core, CONTROLNET_OV_PATH, TEXT_ENCODER_OV_PATH, UNET_OV_PATH, VAE_DECODER_OV_PATH, device='CPU')
 
-prompt = ["a black cat", "a yellow bird"]
-negative_prompt = ""
+prompt = "Dancing Darth Vader, best quality, extremely detailed"
+negative_prompt = "monochrome, lowres, bad anatomy, worst quality, low quality"
+
+original_image = load_image("test_pose_src.jpg")
+pose_image = pose_estimator(original_image)
 
 
 time_lst = []
-result = ov_pipe(prompt[0], canny_image[0], num_inference_steps=20, negative_prompt=negative_prompt)  # for cache
+result = ov_pipe(prompt, pose_image, num_inference_steps=20, negative_prompt=negative_prompt)  # for cache
 
 for i in range(10):
-    idx = i % 2
     np.random.seed(i)
 
     start = time.perf_counter()
-    result = ov_pipe(prompt[idx], canny_image[idx], num_inference_steps=20, negative_prompt=negative_prompt)
+    result = ov_pipe(prompt, pose_image, num_inference_steps=20, negative_prompt=negative_prompt)
     end = time.perf_counter()
     time_lst.append(end - start)
 
-    image = make_image_grid([original_image[idx], canny_image[idx], result[0]], rows=1, cols=3)
+    image = make_image_grid([original_image, pose_image, result[0]], rows=1, cols=3)
     image.save("outputs/CN_openvino" + str(i) + ".png")
 
 with open("CN_openvino.csv", "a") as file:

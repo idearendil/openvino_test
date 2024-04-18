@@ -8,12 +8,13 @@ CONTROLNET_OV_PATH = Path('./cn_openvino/controlnet.xml')
 UNET_OV_PATH = Path('./cn_openvino/unet_controlnet.xml')
 TEXT_ENCODER_OV_PATH = Path('./cn_openvino/text_encoder.xml')
 VAE_DECODER_OV_PATH = Path('./cn_openvino/vae_decoder.xml')
+OPENPOSE_OV_PATH = Path("./cn_openvino/openpose.xml")
 
 
 inputs = {
     "sample": torch.randn((2, 4, 64, 64)),
     "timestep": torch.tensor(1),
-    "encoder_hidden_states": torch.randn((2,77,1024)),
+    "encoder_hidden_states": torch.randn((2,77,768)),
     "controlnet_cond": torch.randn((2,3,512,512))
 }
 
