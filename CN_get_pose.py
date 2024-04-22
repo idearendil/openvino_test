@@ -38,8 +38,8 @@ def visualize_pose_results(orig_img:Image.Image, skeleton_img:Image.Image, left_
     fig.tight_layout()
     return fig
 
-# pose_estimator = OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
-# img = load_image("pose.jpg")
-# pose = pose_estimator(img)
-# fig = visualize_pose_results(img, pose)
-# plt.savefig('temp.png')
+pose_estimator = OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
+img = load_image("test_pose_src2.jpg")
+pose = pose_estimator(img)
+fig = visualize_pose_results(img, pose)
+plt.savefig('test_pose.png')

@@ -4,16 +4,16 @@ from functools import partial
 import torch
 from typing import Tuple
 
-CONTROLNET_OV_PATH = Path('./cn_openvino/controlnet.xml')
-UNET_OV_PATH = Path('./cn_openvino/unet_controlnet.xml')
-TEXT_ENCODER_OV_PATH = Path('./cn_openvino/text_encoder.xml')
-VAE_DECODER_OV_PATH = Path('./cn_openvino/vae_decoder.xml')
-OPENPOSE_OV_PATH = Path("./cn_openvino/openpose.xml")
+CONTROLNET_OV_PATH = Path('./cn_openvino_edge/controlnet.xml')
+UNET_OV_PATH = Path('./cn_openvino_edge/unet_controlnet.xml')
+TEXT_ENCODER_OV_PATH = Path('./cn_openvino_edge/text_encoder.xml')
+VAE_DECODER_OV_PATH = Path('./cn_openvino_edge/vae_decoder.xml')
+OPENPOSE_OV_PATH = Path("./cn_openvino_edge/openpose.xml")
 
 
 inputs = {
     "sample": torch.randn((2, 4, 64, 64)),
-    "timestep": torch.tensor(1),
+    "timestep": torch.tensor(50),
     "encoder_hidden_states": torch.randn((2,77,768)),
     "controlnet_cond": torch.randn((2,3,512,512))
 }

@@ -319,7 +319,7 @@ class OVContrlNetStableDiffusionPipeline(DiffusionPipeline):
             latents = latents
 
         # scale the initial noise by the standard deviation required by the scheduler
-        latents = latents * self.scheduler.init_noise_sigma
+        latents = latents * self.scheduler.init_noise_sigma.numpy()
         return latents
 
     def decode_latents(self, latents:np.array, pad:Tuple[int]):
