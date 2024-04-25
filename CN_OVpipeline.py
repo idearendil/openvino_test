@@ -118,7 +118,7 @@ class OVContrlNetStableDiffusionPipeline(DiffusionPipeline):
         self,
         prompt: Union[str, List[str]],
         image: Image.Image,
-        num_inference_steps: int = 20,
+        num_inference_steps: int = 50,
         negative_prompt: Union[str, List[str]] = None,
         guidance_scale: float = 7.5,
         controlnet_conditioning_scale: float = 1.0,

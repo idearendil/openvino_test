@@ -20,17 +20,16 @@ pose_estimator = OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
 
 pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
 pipe.unet = torch.compile(pipe.unet, backend="aot_eager")
-pipe.controlnet = torch.compile(pipe.controlnet, backend="aot_eager")
 pipe.tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
 pipe = pipe.to("cpu")
 # pipe.enable_model_cpu_offload()
 
 prompt_lst = [
-    "Dancing Darth Vader, best quality, extremely detailed",
-    "A Marine soldier sitting in a chair, best quality, extremely detailed",
-    "President Trump doing acrobatics, best quality, extremely detailed"
+    "Dancing Darth Vader, best quality, extremely detailed, vivid, sharp, clear, detailed, vibrant, rich, sophisticated, balanced, dynamic, realistic",
+    "A Marine soldier sitting in a chair, best quality, extremely detailed, vivid, sharp, clear, detailed, vibrant, rich, sophisticated, balanced, dynamic, realistic",
+    "A figure skater in performance, best quality, extremely detailed, vivid, sharp, clear, detailed, vibrant, rich, sophisticated, balanced, dynamic, realistic"
 ]
-negative_prompt = "monochrome, lowres, bad anatomy, worst quality, low quality, strange face"
+negative_prompt = "monochrome, lowres, bad anatomy, worst quality, low quality, strange face, monochrome, lowres, worst quality, low quality, blurry, fuzzy, grainy, pixelated, distorted, dull, flat, muddy, washed-out, low-resolution, unfocused, hazy, rough, jagged, patchy, overexposed, underexposed, noisy, smeared, unrefined"
 
 original_image_lst = [
     load_image("test_pose_src.jpg"),
@@ -47,9 +46,9 @@ time_lst = []
 output = pipe(prompt_lst[0], image=pose_image_lst[0], num_inference_steps=50, negative_prompt=negative_prompt).images[0]  # for cache
 
 for i in range(10):
-    generator = torch.Generator("cpu").manual_seed(i * 8)
+    generator = torch.Generator("cpu").manual_seed(i)
     start = time.perf_counter()
-    output = pipe(prompt_lst[i % 3], image=pose_image_lst[i % 3], num_inference_steps=50, negative_prompt=negative_prompt).images[0]
+    output = pipe(prompt_lst[i % 3], image=pose_image_lst[i % 3], num_inference_steps=50, negative_prompt=negative_prompt, generator=generator).images[0]
     end = time.perf_counter()
     time_lst.append(end - start)
 

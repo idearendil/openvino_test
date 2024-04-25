@@ -4,11 +4,10 @@ from functools import partial
 import torch
 from typing import Tuple
 
-CONTROLNET_OV_PATH = Path('./cn_openvino_edge/controlnet.xml')
-UNET_OV_PATH = Path('./cn_openvino_edge/unet_controlnet.xml')
-TEXT_ENCODER_OV_PATH = Path('./cn_openvino_edge/text_encoder.xml')
-VAE_DECODER_OV_PATH = Path('./cn_openvino_edge/vae_decoder.xml')
-OPENPOSE_OV_PATH = Path("./cn_openvino_edge/openpose.xml")
+CONTROLNET_OV_PATH = Path('./cn_openvino_depth/controlnet.xml')
+UNET_OV_PATH = Path('./cn_openvino_depth/unet_controlnet.xml')
+TEXT_ENCODER_OV_PATH = Path('./cn_openvino_depth/text_encoder.xml')
+VAE_DECODER_OV_PATH = Path('./cn_openvino_depth/vae_decoder.xml')
 
 
 inputs = {

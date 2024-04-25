@@ -1,6 +1,7 @@
 outputs/
 cn_openvino/
 cn_openvino_edge/
+cn_openvino_depth/
 sd2.1/
 yolov8s_openvino_model/
 images/

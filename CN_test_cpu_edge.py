@@ -19,7 +19,6 @@ pipe = StableDiffusionControlNetPipeline.from_pretrained(
 
 pipe.scheduler = LMSDiscreteScheduler.from_config(pipe.scheduler.config)
 pipe.unet = torch.compile(pipe.unet, backend="aot_eager")
-pipe.controlnet = torch.compile(pipe.controlnet, backend="aot_eager")
 pipe.tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
 pipe = pipe.to("cpu")
 # pipe.enable_model_cpu_offload()
@@ -28,32 +27,36 @@ prompt_lst = [
     "A blue truck on the road next to forest, best quality, vivid, sharp, clear, detailed, vibrant, rich, polished, sophisticated, balanced, stunning, dynamic, captivating, realistic",
     "An American politician, white shirt, black hair, best quality, vivid, sharp, clear, detailed, rich, sophisticated, balanced, stunning, dynamic, captivating, atmospheric",
     "A street in a US city at night, some crosswalks, best quality, clear, detailed, rich, dark road, polished, sophisticated, balanced, realistic, likely",
+    "A military tank on a snowy field, best quality, extremely detailed, vivid, sharp, clear, vibrant, rich, polished, sophisticated, balanced, dynamic, realistic",
+    "A space fighter flying fast in the space, black and stars background, best quality, sharp, clear, detailed, rich, polished, sophisticated, balanced, stunning, dynamic, captivating, dreamy"
 ]
 negative_prompt = "monochrome, lowres, worst quality, low quality, blurry, fuzzy, grainy, pixelated, distorted, dull, flat, muddy, washed-out, low-resolution, unfocused, hazy, rough, jagged, patchy, overexposed, underexposed, noisy, smeared, unrefined"
 
 original_image_lst = [
     load_image("test_edge_src.jpg"),
     load_image("test_edge_src2.jpg"),
-    load_image("test_edge_src3.jpg")
+    load_image("test_edge_src3.jpg"),
+    load_image("test_edge_src4.jpg"),
+    load_image("test_edge_src5.jpg")
 ]
 
 pose_image_lst = []
-for i in range(3):
+for i in range(5):
     image = cv2.Canny(np.array(original_image_lst[i]), 100, 200)[:, :, None]
     image = np.concatenate([image, image, image], axis=2)
     pose_image_lst.append(Image.fromarray(image))
 
 time_lst = []
-# output = pipe(prompt_lst[0], image=pose_image_lst[0], num_inference_steps=50, negative_prompt=negative_prompt).images[0]  # for cache
+output = pipe(prompt_lst[0], image=pose_image_lst[0], num_inference_steps=50, negative_prompt=negative_prompt).images[0]  # for cache
 
 for i in range(10):
-    generator = torch.Generator("cpu").manual_seed(i * 8)
+    generator = torch.Generator("cpu").manual_seed(i)
     start = time.perf_counter()
-    output = pipe(prompt_lst[i % 3], image=pose_image_lst[i % 3], num_inference_steps=50, negative_prompt=negative_prompt).images[0]
+    output = pipe(prompt_lst[i % 5], image=pose_image_lst[i % 5], num_inference_steps=50, negative_prompt=negative_prompt, generator=generator).images[0]
     end = time.perf_counter()
     time_lst.append(end - start)
 
-    image = make_image_grid([original_image_lst[i % 3], pose_image_lst[i % 3], output], rows=1, cols=3)
+    image = make_image_grid([original_image_lst[i % 5], pose_image_lst[i % 5], output], rows=1, cols=3)
     image.save("outputs/CN_cpu_edge" + str(i) + ".png")
 
 with open("CN_cpu_edge.csv", "a") as file:

@@ -16,12 +16,12 @@ import matplotlib.pyplot as plt
 import requests
 
 model_id = "runwayml/stable-diffusion-v1-5"
-CONTROLNET_OV_PATH = Path('./cn_openvino_edge/controlnet.xml')
-UNET_OV_PATH = Path('./cn_openvino_edge/unet_controlnet.xml')
-TEXT_ENCODER_OV_PATH = Path('./cn_openvino_edge/text_encoder.xml')
-VAE_DECODER_OV_PATH = Path('./cn_openvino_edge/vae_decoder.xml')
+CONTROLNET_OV_PATH = Path('./cn_openvino_depth/controlnet.xml')
+UNET_OV_PATH = Path('./cn_openvino_depth/unet_controlnet.xml')
+TEXT_ENCODER_OV_PATH = Path('./cn_openvino_depth/text_encoder.xml')
+VAE_DECODER_OV_PATH = Path('./cn_openvino_depth/vae_decoder.xml')
 
-controlnet = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_canny", torch_dtype=torch.float32, use_safetensors=False)
+controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-depth", torch_dtype=torch.float32, use_safetensors=False)
 pipe = StableDiffusionControlNetPipeline.from_pretrained(
     model_id, controlnet=controlnet, torch_dtype=torch.float32, use_safetensors=False
 )
@@ -38,29 +38,34 @@ tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
 
 ov_pipe = OVContrlNetStableDiffusionPipeline(tokenizer, scheduler, core, CONTROLNET_OV_PATH, TEXT_ENCODER_OV_PATH, UNET_OV_PATH, VAE_DECODER_OV_PATH, device='CPU')
 
+model_type = "DPT_Large"
+midas = torch.hub.load("intel-isl/MiDaS", model_type)
+midas.to(torch.device("cpu"))
+midas.eval()
+midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+
 prompt_lst = [
-    "A blue truck on the road next to forest, best quality, vivid, sharp, clear, detailed, vibrant, rich, polished, sophisticated, balanced, stunning, dynamic, captivating, realistic",
-    "An American politician, white shirt, black hair, best quality, vivid, sharp, clear, detailed, rich, sophisticated, balanced, stunning, dynamic, captivating, atmospheric",
-    "A street in a US city at night, some crosswalks, best quality, clear, detailed, rich, dark road, polished, sophisticated, balanced, realistic, likely",
-    "A military tank on a snowy field, best quality, extremely detailed, vivid, sharp, clear, vibrant, rich, polished, sophisticated, balanced, dynamic, realistic",
-    "A space fighter flying fast in the space, black and stars background, best quality, sharp, clear, detailed, rich, polished, sophisticated, balanced, stunning, dynamic, captivating, dreamy"
+    "A warship on fire, best quality, vivid, sharp, clear, detailed, vibrant, rich, polished, sophisticated, balanced, stunning, dynamic, captivating, realistic",
 ]
 negative_prompt = "monochrome, lowres, worst quality, low quality, blurry, fuzzy, grainy, pixelated, distorted, dull, flat, muddy, washed-out, low-resolution, unfocused, hazy, rough, jagged, patchy, overexposed, underexposed, noisy, smeared, unrefined"
 
 original_image_lst = [
-    load_image("test_edge_src.jpg"),
-    load_image("test_edge_src2.jpg"),
-    load_image("test_edge_src3.jpg"),
-    load_image("test_edge_src4.jpg"),
-    load_image("test_edge_src5.jpg")
+    load_image("test_depth_src.jpg"),
 ]
 
 pose_image_lst = []
-for i in range(5):
-    image = cv2.Canny(np.array(original_image_lst[i]), 100, 200)[:, :, None]
-    image = np.concatenate([image, image, image], axis=2)
-    print(image.shape)
-    pose_image_lst.append(Image.fromarray(image))
+for i in range(1):
+    with torch.no_grad():
+        prediction = midas(midas_transforms.dpt_transform(np.array(original_image_lst[i])))
+        prediction = torch.nn.functional.interpolate(
+            prediction.unsqueeze(1),
+            size=np.array(original_image_lst[i]).shape[:2],
+            mode="bicubic",
+            align_corners=False,
+        ).squeeze().cpu().numpy()
+        prediction -= np.min(prediction)
+        prediction = np.stack([prediction, prediction, prediction], axis=2)
+        pose_image_lst.append(Image.fromarray(prediction.astype(np.uint8)))
 
 time_lst = []
 result = ov_pipe(prompt_lst[0], pose_image_lst[0], num_inference_steps=50, negative_prompt=negative_prompt)  # for cache
@@ -69,14 +74,14 @@ for i in range(10):
     np.random.seed(i)
 
     start = time.perf_counter()
-    result = ov_pipe(prompt_lst[i % 5], pose_image_lst[i % 5], num_inference_steps=50, negative_prompt=negative_prompt)
+    result = ov_pipe(prompt_lst[i % 1], pose_image_lst[i % 1], num_inference_steps=50, negative_prompt=negative_prompt)
     end = time.perf_counter()
     time_lst.append(end - start)
 
-    image = make_image_grid([original_image_lst[i % 5], pose_image_lst[i % 5], result[0]], rows=1, cols=3)
-    image.save("outputs/CN_openvino_edge" + str(i) + ".png")
+    image = make_image_grid([original_image_lst[i % 1], pose_image_lst[i % 1], result[0]], rows=1, cols=3)
+    image.save("outputs/CN_openvino_depth" + str(i) + ".png")
 
-with open("CN_openvino_edge.csv", "a") as file:
+with open("CN_openvino_depth.csv", "a") as file:
     for i in range(10):
         file.write(str(time_lst[i]) + ',')
     file.write(str(sum(time_lst) / len(time_lst)) + "\n")

@@ -41,11 +41,11 @@ tokenizer = CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')
 ov_pipe = OVContrlNetStableDiffusionPipeline(tokenizer, scheduler, core, CONTROLNET_OV_PATH, TEXT_ENCODER_OV_PATH, UNET_OV_PATH, VAE_DECODER_OV_PATH, device='CPU')
 
 prompt_lst = [
-    "Dancing Darth Vader, best quality, extremely detailed",
-    "A Marine soldier sitting in a chair, best quality, extremely detailed",
-    "President Trump doing acrobatics, best quality, extremely detailed"
+    "Dancing Darth Vader, best quality, extremely detailed, vivid, sharp, clear, detailed, vibrant, rich, sophisticated, balanced, dynamic, realistic",
+    "A Marine soldier sitting in a chair, best quality, extremely detailed, vivid, sharp, clear, detailed, vibrant, rich, sophisticated, balanced, dynamic, realistic",
+    "A figure skater in performance, best quality, extremely detailed, vivid, sharp, clear, detailed, vibrant, rich, sophisticated, balanced, dynamic, realistic"
 ]
-negative_prompt = "monochrome, lowres, bad anatomy, worst quality, low quality, strange face"
+negative_prompt = "monochrome, lowres, bad anatomy, worst quality, low quality, strange face, monochrome, lowres, worst quality, low quality, blurry, fuzzy, grainy, pixelated, distorted, dull, flat, muddy, washed-out, low-resolution, unfocused, hazy, rough, jagged, patchy, overexposed, underexposed, noisy, smeared, unrefined"
 
 original_image_lst = [
     load_image("test_pose_src.jpg"),
