@@ -39,7 +39,7 @@ def controlnet_conversion(controlnet):
         with torch.no_grad():
             controlnet.forward = partial(controlnet.forward, return_dict=False)
             ov_model = ov.convert_model(controlnet, example_input=inputs, input=input_info)
-            ov.save_model(ov_model, CONTROLNET_OV_PATH)
+            ov.save_model(ov_model, CONTROLNET_OV_PATH, compress_to_fp16=False)
             del ov_model
         print('ControlNet successfully converted to IR')
     else:
@@ -117,7 +117,7 @@ def unet_conversion(pipe, down_block_res_samples, mid_block_res_sample):
         input_tensor.get_node().set_partial_shape(ov.PartialShape(input_data.shape))
         input_tensor.get_node().set_element_type(dtype_mapping[input_data.dtype])
     ov_model.validate_nodes_and_infer_types()
-    ov.save_model(ov_model, UNET_OV_PATH)
+    ov.save_model(ov_model, UNET_OV_PATH, compress_to_fp16=False)
     del ov_model
     print('Unet successfully converted to IR')
 
@@ -135,9 +135,9 @@ def text_encoder_conversion(text_encoder:torch.nn.Module):
         ov_model = ov.convert_model(
             text_encoder,  # model instance
             example_input=input_ids,  # inputs for model tracing
-            input=([1, 77],)
+            input=([1, 77])
         )
-        ov.save_model(ov_model, TEXT_ENCODER_OV_PATH)
+        ov.save_model(ov_model, TEXT_ENCODER_OV_PATH, compress_to_fp16=False)
         del ov_model
     print('Text Encoder successfully converted to IR')
 
@@ -161,6 +161,6 @@ def vae_decoder_conversion(vae: torch.nn.Module):
     vae_decoder.eval()
     with torch.no_grad():
         ov_model = ov.convert_model(vae_decoder, example_input=latents, input=[(1,4,64,64),])
-        ov.save_model(ov_model, VAE_DECODER_OV_PATH)
+        ov.save_model(ov_model, VAE_DECODER_OV_PATH, compress_to_fp16=False)
     del ov_model
     print('VAE decoder successfully converted to IR')

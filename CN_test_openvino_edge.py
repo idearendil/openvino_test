@@ -59,7 +59,6 @@ pose_image_lst = []
 for i in range(5):
     image = cv2.Canny(np.array(original_image_lst[i]), 100, 200)[:, :, None]
     image = np.concatenate([image, image, image], axis=2)
-    print(image.shape)
     pose_image_lst.append(Image.fromarray(image))
 
 time_lst = []
